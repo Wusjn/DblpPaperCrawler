@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+DOWNLOAD_DELAY = 1
+DEFAULT_REQUEST_HEADERS = {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15'}
 # Scrapy settings for dblp project
 #
 # For simplicity, this file contains only settings considered important or
@@ -19,7 +20,7 @@ NEWSPIDER_MODULE = 'dblp.spiders'
 #USER_AGENT = 'dblp (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32

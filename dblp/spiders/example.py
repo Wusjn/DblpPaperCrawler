@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+import sys
 
 
 class ExampleSpider(scrapy.Spider):
@@ -15,24 +16,69 @@ class ExampleSpider(scrapy.Spider):
         url = getattr(self, 'seedUrl', None)
         yield scrapy.Request(url, self.parse)
 
+    def https2http(self,url):
+        if url.startswith('https'):
+            return url[:4] + url[5:]
+        else:
+            return url
+
+    def selectProperUrl(self,urls):
+        httpUrls = []
+        for url in urls:
+            httpUrls.append(self.https2http(url))
+
+        for url in httpUrls:
+            if url.startswith('http://dl.acm.org'):
+                return ('acm',url)
+        for url in httpUrls:
+            if url.startswith('http://ieeexplore.ieee.org'):
+                return ('ieee',url)
+        for url in httpUrls:
+            if url.startswith('http://link.springer.com'):
+                return ('springer',url)
+        for url in httpUrls:
+            if url.startswith('http://doi.org'):
+                return ('doi',url)
+        print("Didn't find supported url in urls below :")
+        print(httpUrls)
+        sys.exit(1)
+
+
     def parse(self, response):
         headers = response.xpath('//ul[@class="publ-list"]/preceding-sibling::header')[1:]
         headers = headers.xpath('h2/text()').getall()
 
         classes = response.xpath('//ul[@class="publ-list"]')[1:]
-        classUrls = []
+        classesUrls = []
         for aClass in classes:
-            eeUrls = aClass.xpath('.//li[@class="ee"]/a/@href').getall()
-            classUrls.append(eeUrls)
+            papers = aClass.xpath('.//li[@class="entry inproceedings"]')
+            classUrls = []
+            for paper in papers:
+                title = paper.xpath('.//span[@class="title"]/text()').get()
+                urls = paper.xpath('.//li[@class="ee"]/a/@href').getall()
+                urlType,selectedUrl = self.selectProperUrl(urls)
+                classUrls.append((title,urlType,selectedUrl))
+            classesUrls.append(classUrls)
 
-        for header,urls in zip(headers,classUrls):
-            for url in urls:
-                yield scrapy.Request(url,callback=self.parseEe,cb_kwargs={'header' : header})
+            
+        for header,urls in zip(headers,classesUrls):
+            for (title,urlType,url) in urls:
+                if urlType == 'acm':
+                    yield scrapy.Request(url,callback=self.parseAcm,cb_kwargs={'header' : header,'title' : title})
+                elif urlType == 'ieee':
+                    yield scrapy.Request(url,callback=self.parseIeee,cb_kwargs={'header' : header,'title' : title})
+                elif urlType == 'springer':
+                    yield scrapy.Request(url,callback=self.parseSpringer,cb_kwargs={'header' : header,'title' : title})
+                elif urlType == 'doi':
+                    yield scrapy.Request(url,callback=self.parseDoi,cb_kwargs={'header' : header,'title' : title})
+                else:
+                    print('Unknown url type : ' + urlType)
+                    sys.exit(2)
 
-    def parseEe(self, response, header):
+    def parseAcm(self, response, header, title):
         url = response.xpath('//a[@name="FullTextPDF"]/@href').get()
         url = response.urljoin(url)
-        title = response.xpath('//div[@id="divmain"]//h1/text()').get()
+        #title = response.xpath('//div[@id="divmain"]//h1/text()').get()
         
         #from scrapy.shell import inspect_response
         #inspect_response(response,self)
@@ -41,3 +87,40 @@ class ExampleSpider(scrapy.Spider):
             'title' : title,
             'url' : url,
         }
+
+    def parseIeee(self, response, header, title):
+        baseUrl = 'https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber='
+        documentId = response.url.split('/')[-1]
+        url = baseUrl + documentId
+
+        yield {
+            'header' : header,
+            'title' : title,
+            'url' : url,
+        }
+
+    def parseSpringer(self, response, header, title):
+        url = response.xpath('.//a[@data-track-action="Pdf download"]/@href').get()
+        url = response.urljoin(url)
+
+        yield {
+            'header' : header,
+            'title' : title,
+            'url' : url,
+        }
+
+    def parseDoi(self, response, header, title):
+        url = self.https2http(response.url)
+        result = None
+        if url.startswith('http://dl.acm.org'):
+            result = self.parseAcm(response, header, title)
+        elif url.startswith('http://ieeexplore.ieee.org'):
+            result = self.parseIeee(response, header, title)
+        elif url.startswith('http://link.springer.com'):
+            result = self.parseSpringer(response, header, title)
+        else:
+            print('Unknown url type : ' + url)
+            sys.exit(3)
+        for item in result:
+            yield item
+
