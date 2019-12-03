@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 DOWNLOAD_DELAY = 1
-DEFAULT_REQUEST_HEADERS = {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15'}
+DEFAULT_REQUEST_HEADERS = {'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36'}
 # Scrapy settings for dblp project
 #
 # For simplicity, this file contains only settings considered important or

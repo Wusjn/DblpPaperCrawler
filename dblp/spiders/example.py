@@ -8,7 +8,11 @@ class ExampleSpider(scrapy.Spider):
     custom_settings = {
         'DOWNLOAD_DELAY' : 1,
         'ROBOTSTXT_OBEY' : False,
-        'DEFAULT_REQUEST_HEADERS' : {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15'},
+        'DEFAULT_REQUEST_HEADERS' : {
+            'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36',
+            'Accept' : '*/*',
+            'Accept-Encoding' : 'identity',
+        }
     }
     #allowed_domains = ['example.com']
     #start_urls = ['https://dblp.uni-trier.de/db/conf/icse/icse2019.html']
@@ -21,23 +25,26 @@ class ExampleSpider(scrapy.Spider):
             return url[:4] + url[5:]
         else:
             return url
+    
+    def http2https(self,url):
+        return url[:4] + 's' + url[4:]
 
     def selectProperUrl(self,urls):
         httpUrls = []
         for url in urls:
-            httpUrls.append(self.https2http(url))
+            httpUrls.append(self.http2https(self.https2http(url)))
 
         for url in httpUrls:
-            if url.startswith('http://dl.acm.org'):
+            if url.startswith('https://dl.acm.org'):
                 return ('acm',url)
         for url in httpUrls:
-            if url.startswith('http://ieeexplore.ieee.org'):
+            if url.startswith('https://ieeexplore.ieee.org'):
                 return ('ieee',url)
         for url in httpUrls:
-            if url.startswith('http://link.springer.com'):
+            if url.startswith('https://link.springer.com'):
                 return ('springer',url)
         for url in httpUrls:
-            if url.startswith('http://doi.org'):
+            if url.startswith('https://doi.org'):
                 return ('doi',url)
         print("Didn't find supported url in urls below :")
         print(httpUrls)
